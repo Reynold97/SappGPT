@@ -1,3 +1,4 @@
+from helper.classes import Role, Message
 from helper.openai_api import create_message
 from helper.twilio_api import send_message
 from fastapi import FastAPI, Request
@@ -12,18 +13,29 @@ app = FastAPI()
 
 @app.get('/')
 async def home():
-    return {"Cheking" : "OK", "sapptest version" : "0.1.0"}
+    return {"Cheking" : "OK", "godgpt version" : "0.5.0"}
 
 
-@app.post('/twilio/receiveMessage', response_class=PlainTextResponse)
-async def receiveMessage(request: Request) -> None:
+@app.post("/new_message")
+def new_message(input_messages : list[Message]):
     
-        form_data: Dict[str, str] = await request.form()
-        message = form_data.get('Body')
-        sender_id = form_data.get('From')
+    result = create_message(input_messages)
+    
+    return Message(role=Role.assistant, content=result)
 
-        # Get response from Openai
-        result = create_message(message)
-        if result['status'] == 1:
-            send_message(sender_id, result['response'])
+
+@app.post('/twilio/new_message', response_class=PlainTextResponse)
+async def twiliomessage(request: Request) -> None:
+    
+    form_data: Dict[str, str] = await request.form()
+    input_message = form_data.get('Body')
+    sender_id = form_data.get('From')
+
+    message = [
+    Message(role=Role.user, content=input_message),
+    ]
+
+    result = create_message(message)
+    
+    send_message(sender_id, result)
   
